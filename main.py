@@ -11,6 +11,7 @@ import yt_dlp
 import keep_alive
 import pymongo
 import srv
+from replit import db
 from async_timeout import timeout
 from nextcord.ext import commands
 
@@ -566,37 +567,75 @@ bot.add_cog(Moderation(bot))
 async def on_raw_reaction_add(ctx):
     channel = bot.get_channel(ctx.channel_id)
     message = await channel.fetch_message(ctx.message_id)
+    reaction = nextcord.utils.get(message.reactions, emoji = "⭐")
+    print(reaction.emoji)
+    if reaction.emoji == "⭐" or ctx.emoji.name == "⭐":
+      if reaction.count > 3:
+        await message.pin()
+      embed = nextcord.Embed(description=f'''
+  [Content:]({message.jump_url}) {message.content}
+  `⭐`: {reaction.count}     
+          ''')
+    
+      reactionchannel =bot.get_channel(909553278306623499)
+      if str(message.id) in db.keys():
+        msgstring = db[str(message.id)]
+        
+        finder = msgstring.find(':')
+        
+        value = msgstring[0:finder]
+        print("true")
+        print(value)
+        messagetochange = await reactionchannel.fetch_message(int(value))
+        await messagetochange.edit(embed=embed)
+      else:
+        msg = await reactionchannel.send(embed=embed)
+        print(msg.id)
+        db[str(message.id)] = str(msg.id) + ": reaction value:" + str(reaction.count)
+
+@bot.event
+async def on_raw_reaction_remove(ctx):
+    channel = bot.get_channel(ctx.channel_id)
+    message = await channel.fetch_message(ctx.message_id)
     reaction = nextcord.utils.get(message.reactions, emoji=ctx.emoji.name)
     embed = nextcord.Embed(description=f'''
 [Content:]({message.jump_url}) {message.content}
 `⭐`: {reaction.count}     
         ''')
     reactionchannel =bot.get_channel(909553278306623499)
-    db = client.collection["starboard"]["starboard"]
-    to_find = {"s_id":ctx.guild_id}
-    found = db.find(to_find) 
-    for one in found:
-      if ctx.emoji.name == one["e_id"]:
-        
-        db2 = db["starboard"]["logs"]
-        to_find2 = {"m_id":message.id}
-        found2 = db2.find(to_find2)
-        for two in found2:
-         if reaction and reaction.count == int(one["num"]):
-             editing = await channel.fetch_message(two['bm_id'])
-             await editing.edit(embed=embed)
-             return
-        if reaction and reaction.count == int(one["num"]):
-          msg = await reactionchannel.send(embed=embed)
+    if str(message.id) in db.keys():
+      msgstring = db[str(message.id)]
+      
+      finder = msgstring.find(':')
+      
+      value = msgstring[0:finder]
+      print("true")
+      print(value)
+      messagetochange = await reactionchannel.fetch_message(int(value))
+      if(reaction.count == 0):
+        await messagetochange.delete()
+      else:
+        await messagetochange.edit(embed=embed)
+
+#257068520284618752
+#@bot.event
+async def on_message(message):
+    if message.author.id == 257068520284618752:
+      await message.delete()
+      user =await message.guild.fetch_member(257068520284618752)
+      user.edit(nick="Chad Sloop Owner")
+
+      message2 = await message.channel.send("owned")
+      await message2.delete(10)
+
     
-    db3 = db["starboard"]["logs"]
     
-    
-    
+
 async def on_ready():
     print('ready!')
 client = pymongo.MongoClient(os.environ['mongokey'])
-db = client.test    
+
 keep_alive.keep_alive()
 my_secret = os.environ['TOKEN']
 bot.run(my_secret)
+ 
